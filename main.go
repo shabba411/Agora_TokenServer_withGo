@@ -6,30 +6,28 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
-	"time"
 
-	"github.com/AgoraIO-Community/go-tokenbuilder/rtctokenbuilder"
-	"github.com/AgoraIO-Community/go-tokenbuilder/rtmtokenbuilder"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
-// AgoraSecrets holds the structure for secrets fetched from AWS Secrets Manager
 type AgoraSecrets struct {
 	AppID          string `json:"APP_ID"`
 	AppCertificate string `json:"APP_CERTIFICATE"`
 	BaseURL        string `json:"BASE_URL"`
 }
 
-var appID string
-var appCertificate string
+var (
+	liveSecrets     AgoraSecrets
+	loungeSecrets   AgoraSecrets
+	messagingSecrets AgoraSecrets
+)
 
-// FetchAgoraSecrets fetches Agora secrets from AWS Secrets Manager
+
+// FetchAgoraSecrets fetches secrets from AWS Secrets Manager
 func FetchAgoraSecrets(secretName string) (*AgoraSecrets, error) {
-	// Load the AWS config
+	// Load AWS config
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("unable to load AWS config: %v", err)
@@ -54,7 +52,6 @@ func FetchAgoraSecrets(secretName string) (*AgoraSecrets, error) {
 	}
 	return &secrets, nil
 }
-
 func init() {
 	// Load environment variables from .env file (if present)
 	if err := godotenv.Load(); err != nil {
@@ -63,19 +60,25 @@ func init() {
 }
 
 func main() {
-	// Fetch Agora secrets
-	secrets, err := FetchAgoraSecrets("lag-live-agora")
+	// Fetch secrets for each application
+	var err error
+	liveSecrets, err = FetchAgoraSecrets("lag-live-agora")
 	if err != nil {
-		log.Fatalf("Failed to fetch secrets: %v", err)
+		log.Fatalf("Failed to fetch LAG Live secrets: %v", err)
 	}
 
-	// Assign fetched secrets to global variables
-	appID = secrets.AppID
-	appCertificate = secrets.AppCertificate
-
-	if appID == "" || appCertificate == "" {
-		log.Fatal("FATAL ERROR: Secrets not properly configured, check AWS Secrets Manager")
+	loungeSecrets, err = FetchAgoraSecrets("lag-lounge-agora")
+	if err != nil {
+		log.Fatalf("Failed to fetch LAG Lounge secrets: %v", err)
 	}
+
+	messagingSecrets, err = FetchAgoraSecrets("lag-messaging-agora")
+	if err != nil {
+		log.Fatalf("Failed to fetch LAG Messaging secrets: %v", err)
+	}
+
+	// Log fetched secrets (ensure sensitive information isn't printed in production)
+	fmt.Println("Secrets fetched successfully")
 
 	// Initialize Gin server
 	api := gin.Default()
@@ -109,6 +112,7 @@ func nocache() gin.HandlerFunc {
 		c.Header("Access-Control-Allow-Origin", "*")
 	}
 }
+
 
 func getRtcToken(c *gin.Context) {
 	channelName, tokentype, uidStr, role, expireTimestamp, err := parseRtcParams(c)
