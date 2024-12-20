@@ -6,9 +6,12 @@ require (
 	github.com/AgoraIO-Community/go-tokenbuilder v1.0.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/joho/godotenv v1.4.0
+	github.com/aws/aws-sdk-go-v2 v1.16.2 // AWS SDK for Go v2
 )
 
 require (
+	github.com/aws/aws-sdk-go-v2/config v1.16.2 // AWS config
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.16.2 // AWS Secrets Manager client
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
